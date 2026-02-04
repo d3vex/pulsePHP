@@ -1,12 +1,12 @@
 <?php
 
 
-require_once "src/core/routing/Route.php";
-require_once "src/core/routing/Router.php";
-require_once "src/core/routing/Controller.php";
-require_once "src/core/routing/dispatcher.php";
-require_once "src/core/routing/Middleware/middlewareInterface.php";
+require_once __DIR__ . "/Route.php";
+require_once __DIR__ . "/Router.php";
+require_once __DIR__ . "/dispatcher.php";
+require_once __DIR__ . "/Middleware/middlewareInterface.php";
 
 
-
-require_once "src/core/routing/Exceptions/RouteRegisterExceptions.php";
+require_once __DIR__ . "/Exceptions/RouteRegisterExceptions.php";
+require_once __DIR__ . "/Exceptions/MiddlewareExceptions.php";
+require_once __DIR__ . "/Exceptions/DispatcherExceptions.php";

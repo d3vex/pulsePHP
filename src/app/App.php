@@ -1,45 +1,80 @@
 <?php
 
-require_once "src/core/bootstrap/bootstrap.php";
+require_once __DIR__ . "/../core/bootstrap/Bootstrap.php";
 
-class App {
+class App
+{
 
-    private IOCContainer $container;
+    protected IOCContainer $container;
     private Router $router;
     private Kernel $kernel;
 
-    
-    public function __construct() {
-    }
-
-    public static function start() {
+    public static function start()
+    {
         $app = new App();
-        
-        $app->container = ContainerFactory::buildContainer();
-
-        $app->router = $app->container->get(Router::class);
-
-        $app->kernel = $app->container->get(Kernel::class);
-
+        $app->boostrap();
+        $app->registerUserScripts();
         return $app;
     }
 
-    public function getRouter(): Router {
+    public function registerUserService(): void
+    {
+        // Define here all the service you have to define
+        // Exemple: $this->registerService(User::class, new UserService());
+    }
+    public function registerUserSharedService(): void
+    {
+        // Define here all the service you have to define
+        // Exemple: $this->registerSharedService(Configuration::class);
+    }
+    public function registerUserController(): void
+    {
+        // Define here all the service you have to define
+        // Exemple: $this->registerController(BasicController::class);
+    }
+    
+
+    public function getRouter(): Router
+    {
         return $this->router;
     }
 
-    public function registerController(string $controllerClass): void {
+
+    public function registerUserScripts(): void {
+        $this->registerUserController();
+        $this->registerUserSharedService();
+        $this->registerUserService();
+    }
+
+    public function registerController(string $controllerClass): void
+    {
         $this->registerService($controllerClass);
         $this->router->registerController($controllerClass);
 
     }
-    public function registerSharedService(string $serviceClass): void {
-        $this->container->registerShared($serviceClass);
+    public function registerSharedService(string $serviceClass, ?Closure $constructor = null): void
+    {
+        $this->container->registerShared($serviceClass, $constructor);
     }
-    public function registerService(string $serviceClass): void {
-        $this->container->registerDedicated($serviceClass);
+    public function registerService(string $serviceClass, ?Closure $constructor = null): void
+    {
+        $this->container->registerDedicated($serviceClass, $constructor);
     }
 
+    public function boostrap()
+    {
+        $this->container = ContainerFactory::buildContainer();
+        $this->kernel = $this->container->get(Kernel::class);
+        $this->router = $this->container->get(Router::class);
+
+    }
+
+    public function run()
+    {
+        $request = RequestModel::fromGlobals();
+        $response = $this->kernel->handle($request);
+        $response->send();
+    }
 }
 
 

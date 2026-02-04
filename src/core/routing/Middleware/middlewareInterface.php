@@ -2,5 +2,5 @@
 
 interface MiddlewareInterface
 {
-    public function handle(): void;
+    public function handle(RequestModel $request);
 }

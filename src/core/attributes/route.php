@@ -9,6 +9,14 @@ class Route
     ) {}
 }
 
+
+#[Attribute(Attribute::TARGET_PARAMETER)]
+class Request
+{
+    public function __construct(
+    ) {}   
+}
+
 #[Attribute(Attribute::TARGET_PARAMETER)]
 class Body
 {
@@ -24,6 +32,15 @@ class Query
         public string $name = ''
     ) {}   
 }
+
+#[Attribute(Attribute::TARGET_PARAMETER)]
+class Header
+{
+    public function __construct(
+        public string $name = ''
+    ) {}   
+}
+
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 class Params

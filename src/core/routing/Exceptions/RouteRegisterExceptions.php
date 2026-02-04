@@ -13,3 +13,14 @@ class RouteRegisterParameterPathWithNoEndException extends Exception {
     }
 
 }
+class RouteRegisterInvalidMiddlewareException extends Exception {
+    public function __construct($path, $method) {
+        parent::__construct("Invalid route middleware definition for path '$path' with method '$method'. Middleware should be class name.");
+    }
+}
+
+class RouteRegisterInvalidHandlerException extends Exception {
+    public function __construct($path, $method) {
+        parent::__construct("Invalid route handler definition for path '$path' with method '$method'. Handler should be an array with [Class name, Method name].");
+    }
+}

@@ -5,6 +5,10 @@ class RouteDefinition {
     public string $compiledPath;
     public array $parameters = [];
     public string $method;
-    public array $handler = [];
+    public array $handler;
+    /**
+     * Middleware store array of middleware classes
+     * @var array<string>
+     */
     public array $middleware = [];
 }

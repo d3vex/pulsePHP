@@ -1,13 +1,18 @@
 <?php
-
-require_once "src/core/container/index.php";
-require_once "src/core/routing/index.php";
-
+require_once __DIR__ . "/../http/index.php";
+require_once __DIR__ . "/../container/index.php";
+require_once __DIR__ . "/../routing/index.php";
+require_once __DIR__ . "/../logger/Logger.php";
 
 class ContainerFactory {
     public static function buildContainer(): IOCContainer {
         $IOC = new IOCContainer();
+        $IOC->registerShared(IOCContainer::class, function() use ($IOC) {
+            return $IOC;
+        });
         $IOC->registerShared(Router::class);
+        $IOC->registerShared(class: Kernel::class);
+        $IOC->registerShared(Dispatcher::class);
         return $IOC;
     }
 }

@@ -30,7 +30,9 @@ class IOCContainer {
         $defintion = new ContainerDefinition();
 
         $reflection = new ReflectionClass($class);
-        $constructorParams = $reflection->getConstructor()->getParameters();
+        $constructor = $reflection->getConstructor();
+        if( $constructor === null ) throw new InvalidNoConstructorException($class);
+        $constructorParams = $constructor->getParameters();
         $defintion->dependencies = $this->getConstructorDepenciesClass($constructorParams, $class);
         $defintion->shared = false;
         $defintion->className = $class;
@@ -54,6 +56,10 @@ class IOCContainer {
         return $this->createInstance($definition);
     }
     
+    public function has(string $class): bool {
+        return $this->registry->hasDefintion($class);
+    }
+
 
     private function createInstance(ContainerDefinition $definition): object {
         $dependenciesInstances = [];
@@ -96,7 +102,6 @@ class IOCContainer {
                 $depDef = $this->registry->getDefintion($dependency);
                 if($depDef == null) continue;
                 foreach($depDef->dependencies as $subDependency) {
-                    echo $subDependency . " " . $definition->className . "\n";
                     if($subDependency == $definition->className) {
                         throw new InvalidLoopConstructorParameterException($dependency, $definition->className);
                     }

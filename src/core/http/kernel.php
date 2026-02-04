@@ -22,8 +22,14 @@ class Kernel {
             $response->setStatusCode(404);
             return $response;
         }
+        $response->setHeaders($this->router->getDefaultHeaders());
 
-        $this->dispatcher->dispatch($route, $request, $response);
+        try {
+            $this->dispatcher->dispatch($route, $request, $response);
+        }catch (HTTPExceptions $e) {
+            $response->setStatusCode($e->getHttpCode());
+            $response->setBody($e->__toString());
+        }
 
         return $response;
     }

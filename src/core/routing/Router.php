@@ -1,5 +1,4 @@
 <?php
-require_once "src/core/logger/Logger.php";
 
 class Router
 {
@@ -12,6 +11,10 @@ class Router
         "PATCH" => [],
     ];
 
+    private array $defaultHeaders = [
+        "content-type" => "application/json"
+    ];
+
     private string $baseUrl = "/api";
     private Logger $logger;
     public function __construct()
@@ -19,37 +22,28 @@ class Router
         $this->logger = new Logger(__CLASS__);
     }
 
-    public function logRoutes(): void {
-        foreach ($this->routes as $method => $routes) {
-            foreach ($routes as $route) {
-                $this->logger->info($this->routeToString($route));
-            }
-        }
+    public function setDefaultHeader(string $name, string $value): void
+    {
+        $this->defaultHeaders[$name] = $value;
     }
-
-    private function routeToString(RouteDefinition $route): string {
-        $str = "[$route->method]" . " " . $route->originalPath . ":\n";
-        $str .= "  Controller: " . (is_array($route->controller) ? implode("::", $route->controller) : $route->controller) . "\n";
-        $str .= "  Middleware: " . implode(", ", $route->middleware) . "\n";
-        $str .= "  Parameters: " . implode(", ", $route->parameters) . "\n";
-        $str .= "  Compiled Path: " . $route->compiledPath . "\n";
-        return $str;
+    public function getDefaultHeaders(): array
+    {
+        return $this->defaultHeaders;
     }
-
     public function setBaseUrl(string $baseUrl): void
     {
         $this->baseUrl = $this->sanitizePath($baseUrl);
-        if(str_ends_with($this->baseUrl,"/")) {
+        if (str_ends_with($this->baseUrl, "/")) {
             $this->baseUrl = substr($this->baseUrl, 0, -1);
         }
     }
 
     public function matchRoute(string $path, string $method): RouteDefinition|null
     {
-        if (!isset(self::$routes[$method])) {
+        if (!isset($this->routes[$method])) {
             return null;
         }
-        $routes = self::$routes[$method];
+        $routes = $this->routes[$method];
         if (!is_array($routes)) {
             return null;
         }
@@ -89,8 +83,23 @@ class Router
     public function addRoute(string $path, string $method, ...$controllers): void
     {
         $controller = array_pop($controllers);
-        $middleware = $controllers;
-        $this->createRoute($path, $method, $controller, $middleware);
+        $middlewares = $controllers; 
+        if(is_array($controller) && count($controller) != 2) {
+            throw new RouteRegisterInvalidHandlerException($path, $method);
+        }
+        if(is_array($controller) && !is_string($controller[0])) {
+            throw new RouteRegisterInvalidHandlerException($path, $method);
+        }
+        $path = $this->baseUrl . $this->sanitizePath($path);
+        $validMiddlewares = [];
+        foreach($middlewares as $middleware) {
+            if(is_string($middleware) && class_exists($middleware)) {
+                $validMiddlewares[] = $middleware;
+            } else {
+                throw new RouteRegisterInvalidMiddlewareException($path, $method);
+            }
+        }
+        $this->createRoute($path, $method, $controller, $validMiddlewares);
     }
 
     /**
@@ -185,7 +194,7 @@ class Router
 
     private function parseMiddlewareAttribute(ReflectionAttribute $attribute): array
     {
-        if( $attribute->getName() != Middleware::class) {
+        if ($attribute->getName() != Middleware::class) {
             return [];
         }
         $middleware = [];
@@ -208,7 +217,7 @@ class Router
         return $path;
     }
 
-    private function createRoute(string $path, string $method, array|string $controller, array $middleware)
+    private function createRoute(string $path, string $method, array $controller, array $middleware)
     {
         $route = new RouteDefinition();
         $route->originalPath = $path;
@@ -218,7 +227,7 @@ class Router
         $route->compiledPath = $parsedPath["regex"];
         $route->parameters = $parsedPath["params"];
         $route->middleware = $middleware;
-        $route->controller = $controller;
+        $route->handler = $controller;
         $this->routes[$method][] = $route;
         return $route;
     }
@@ -234,8 +243,8 @@ class Router
                 $regex .= preg_quote(substr($path, 0, $index), '/');
                 $endIndex = strpos($path, "}", $index);
                 if ($endIndex !== false) {
-                    $params[] = substr($path, $index + 1, $endIndex - $index-1);
-                    $regex .= '([^/]+)';
+                    $params[] = substr($path, $index + 1, $endIndex - $index - 1);
+                    $regex .= '([^\/]*)';
                     $path = substr($path, $endIndex + 1);
                 } else {
                     throw new RouteRegisterParameterPathWithNoEndException($path, $method);
@@ -243,6 +252,8 @@ class Router
             }
         }
         $regex .= preg_quote($path, '/');
+        $regex  = preg_replace('/\{[a-zA-Z0-9_]*\}/', '([^\/]*)', $regex);
+        $regex = "/^" . $regex . "$/";
         return ['regex' => $regex, 'params' => $params];
     }
 
@@ -252,10 +263,7 @@ class Router
         if ($route->method !== $method) {
             return false;
         }
-        $pattern = preg_replace('/\{[a-zA-Z_][a-zA-Z0-9_]*\}/', '([^/]+)', $route->compiledPath);
-        $pattern = str_replace('/', '\/', $pattern);
-        $pattern = '/^' . $pattern . '$/';
-
+        $pattern = $route->compiledPath;
         if (preg_match($pattern, $path, $matches)) {
             array_shift($matches);
             preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', $route->originalPath, $paramNames);
@@ -267,4 +275,29 @@ class Router
         }
         return false;
     }
+
+
+    /**
+     * This allow to print route and test the registration
+     * @return void
+     */
+    public function logRoutes(): void
+    {
+        foreach ($this->routes as $method => $routes) {
+            foreach ($routes as $route) {
+                $this->logger->info($this->routeToString($route));
+            }
+        }
+    }
+
+    private function routeToString(RouteDefinition $route): string
+    {
+        $str = "[$route->method]" . " " . $route->originalPath . ":\n";
+        $str .= "  Controller: " . (is_array($route->handler) ? implode("::", $route->handler) : $route->handler) . "\n";
+        $str .= "  Middleware: " . implode(", ", $route->middleware) . "\n";
+        $str .= "  Parameters: " . implode(", ", $route->parameters) . "\n";
+        $str .= "  Compiled Path: " . $route->compiledPath . "\n";
+        return $str;
+    }
+
 }

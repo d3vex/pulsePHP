@@ -1,72 +1,86 @@
 <?php
 
 
-class Headers
+interface IRequestDataBag
 {
-    public string $HTTP_X_FORWARDED_FOR;
-    public string $HTTP_X_FORWARDED_HOST;
-    public string $HTTP_X_FORWARDED_PORT;
-    public string $HTTP_X_FORWARDED_PROTO;
-    public string $HTTP_X_FORWARDED_AWS_ELB;
-    public string $HTTP_X_REAL_IP;
-    public bool $HTTP_X_FORWARDED;
+    public function get(string $key, $default = null);
+    public function all(): array;
+    public function has(string $key): bool;
+    public function init(array $parameters): void;
+}
 
-    public string $HTTP_CACHE_CONTROL;
-    public string $HTTP_CACHE_CONTROL_STRICT;
-    public string $HTTP_CACHE_CONTROL_ALLOW_ORIGINS;
-    public string $HTTP_CACHE_CONTROL_ALLOW_CREDENTIALS;
-    public string $HTTP_CACHE_CONTROL_ALLOW_HEADERS;
-    public string $HTTP_CACHE_CONTROL_ALLOW_METHODS;
+class DataBag implements IRequestDataBag
+{
+    private array $parameters = [];
+    private bool $isInstancied = false;
 
-    public string $HTTP_CONNECTION;
-    public string $HTTP_CONNECTION_WRITE;
-    public string $HTTP_CONNECTION_EXECUTE;
-    public string $HTTP_CONNECTION_BUFFER;
-    public string $HTTP_CONNECTION_BUFFER_LENGTH;
-    public string $HTTP_CONNECTION_BUFFER_LENGTH_SIGNED;
-    public string $HTTP_CONNECTION_BUFFER_LENGTH_END;
-    public string $HTTP_CONNECTION_BUFFER_LENGTH_END_SIGNED;
-    public string $HTTP_USER_AGENT;
-
-    public string $HTTP_DATE;
-    public string $HTTP_PRAGMA;
-    public string $HTTP_TRAILER;
-    public string $HTTP_UPGRADE;
-    public string $CONTENT_LENGTH;
-    public string $CONTENT_TYPE;
-
-    public string $HTTP_HOST;
-    public string $HTTP_REFERER;
-    public string $HTTP_ORIGIN;
-    public string $HTTP_ACCEPT;
-    public string $HTTP_UPGRADE_INSECURE_REQUESTS;
-    public string $SSL_PROTOCOL;
-    public string $SSL_CIPHER;
-
-    public string $STATUS_CODE;
-
-    public static function fromGlobals(): self
+    public function get(string $key, $default = null)
     {
-
-        $headers = new Headers();
-        foreach ($_SERVER as $key => $value) {
-            if (str_starts_with($key, 'HTTP_')) {
-                $name = str_replace('_', '-', substr($key, 5));
-                $headers[$name] = $value;
-            }
-        }
-
-        // Special non HTTP_ headers
-        foreach (['CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5'] as $key) {
-            if (isset($_SERVER[$key])) {
-                $headers[str_replace('_', '-', $key)] = $_SERVER[$key];
-            }
-        }
-
-        return $headers;
-
+        return $this->parameters[$key] ?? $default;
     }
 
+    public function all(): array
+    {
+        return $this->parameters;
+    }
+
+    public function has(string $key): bool
+    {
+        return array_key_exists($key, $this->parameters);
+    }
+
+    public function init(array $parameters): void
+    {
+        if ($this->isInstancied) {
+            throw new RuntimeException("ParametersBag can only be initialized once.");
+        }
+        $this->parameters = $parameters;
+        $this->isInstancied = true;
+    }
+}
+
+class QueryDataBag extends DataBag
+{
+    public static function fromUri(?string $queryString): QueryDataBag
+    {
+        if (empty($queryString)) {
+            return new QueryDataBag();
+        }
+        $queryBag = new QueryDataBag();
+        parse_str($queryString, $queryParameters);
+        $queryBag->init($queryParameters);
+        return $queryBag;
+    }
+}
+
+class HeadersDataBag extends DataBag
+{
+    public static function fromGlobals(): HeadersDataBag
+    {
+        $headersBag = new HeadersDataBag();
+        $headers = getallheaders();
+        if (count($headers) > 0) {
+            $headersBag->init($headers);
+            return $headersBag;
+        }
+
+        foreach ($_SERVER as $key => $value) {
+            if (str_starts_with($key, 'HTTP_')) {
+                $headerName = substr($key, 5);
+                $headers[$headerName] = $value;
+            }
+        }
+        $headersBag->init($headers);
+        return $headersBag;
+    }
+}
+
+class BodyDataBag extends DataBag
+{
+}
+
+class CookiesDataBag extends DataBag
+{
 }
 
 interface IRequest
@@ -81,48 +95,64 @@ interface IRequest
     public function getClientIp(): ?string;
     public function getServerIp(): ?string;
 
-    public function getHeaders(): Headers;
+    public function getHeaders(): array;
     public function getHeader(string $name): ?string;
 
-    public function getContentType(): ?string;
-    public function getContentLength(): ?int;
+    public function getCookies(): array;
+    public function getCookie(string $name): ?string;
 
+    public function hasCookie(string $name): bool;
+
+    public function getBody(): BodyDataBag;
+
+    public function getQueries(): array;
+    public function getQuery(string $name): ?string;
     public function isSecure(): bool;
+
 }
 
 
-class RequestModel implements IRequest
+class RequestModel extends DataBag implements IRequest
 {
-    private string $method;
-    private string $uri;
-    private string $protocol;
-    public array $Query;
-    public array $Body;
-    public string $remoteAddr;
-    public string $remotePort;
-    public string $remoteHost;
-    public string $serverAddr;
-    public string $host;
-    public string $port;
+    private array $data = [
+        "method" => "GET",
+        "uri" => "/",
+        "protocol" => "HTTP/1.1",
+        "host" => null,
+        "port" => null,
+        "remoteAddr" => null,
+        "remotePort" => null,
+        "remoteHost" => null,
+        "serverIp" => null,
+        "query" => null,
+    ];
 
-    public Headers $headers;
+    private HeadersDataBag $headers;
+    private CookiesDataBag $cookies;
+    private QueryDataBag $query;
+    private BodyDataBag $body;
 
     public static function fromGlobals(): RequestModel
     {
         $request = new RequestModel();
-        $request->method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $request->uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $request->protocol = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
-        $request->headers = Headers::fromGlobals();
-        $request->remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
-        $request->remotePort = $_SERVER['REMOTE_PORT'] ?? '';
-        $request->remoteHost = $_SERVER['REMOTE_HOST'] ?? '';
-        $request->serverIp = $_SERVER['SERVER_ADDR'] ?? '';
-        $request->host = $_SERVER['HTTP_HOST'] ?? null;
-        $request->port = $_SERVER['HTTP_PORT'] ?? null;
-        $request->Query = $_GET ?? [];
-        $request->Body = $_POST ?? [];
+        $request->data["method"] = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $request->data["uri"] = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        $request->data["query"] = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_QUERY);
+        $request->data["protocol"] = $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1';
+        $request->headers = HeadersDataBag::fromGlobals();
+        $request->data["remoteAddr"] = $_SERVER['REMOTE_ADDR'] ?? '';
+        $request->data["remotePort"] = $_SERVER['REMOTE_PORT'] ?? '';
+        $request->data["remoteHost"] = $_SERVER['REMOTE_HOST'] ?? '';
+        $request->data["serverIp"] = $_SERVER['SERVER_ADDR'] ?? '';
+        $request->data["host"] = $_SERVER['HTTP_HOST'] ?? null;
+        $request->data["port"] = $_SERVER['HTTP_PORT'] ?? null;
+        $request->query = QueryDataBag::fromUri($request->data["query"]);
+        $request->body = new BodyDataBag();
+        $request->body->init($_POST ?? []);
+        $request->cookies = new CookiesDataBag();
+        $request->cookies->init($_COOKIE ?? []);
 
+        // Clear superglobals for security
         $_GET = [];
         $_POST = [];
         $_FILES = [];
@@ -133,50 +163,77 @@ class RequestModel implements IRequest
         return $request;
     }
 
+
     public function getRequestMethod(): string
     {
-        return $this->method;
+        return $this->data["method"];
     }
     public function getRequestUri(): string
     {
-        return $this->uri;
+        return $this->data["uri"];
     }
     public function getProtocol(): string
     {
-        return $this->protocol;
+        return $this->data["protocol"];
     }
 
-    public function getHost(): ?string {
-        return $this->host;
-    }
-    public function getPort(): ?int {
-        return $this->port;
-    }
-
-    public function getClientIp(): ?string {
-        return $this->remoteAddr;
-    }
-    public function getServerIp(): ?string {
-        return $this->serverIp;
-    }
-
-    public function getHeaders(): Headers
+    public function getHost(): ?string
     {
-        return $this->headers;
+        return $this->data["host"];
     }
-    public function getHeader(string $name): ?string {
-        return $this->headers[$name] ?? null;
-    }
-
-    public function getContentType(): ?string {
-        return $this->getHeader('Content-Type');
-    }
-    public function getContentLength(): ?int {
-        $length = $this->getHeader('Content-Length');
-        return $length !== null ? (int)$length : null;
+    public function getPort(): ?int
+    {
+        return $this->data["port"];
     }
 
-    public function isSecure(): bool {
+    public function getClientIp(): ?string
+    {
+        return $this->data["remoteAddr"];
+    }
+    public function getServerIp(): ?string
+    {
+        return $this->data["serverIp"];
+    }
+
+    public function getHeaders(): array
+    {
+        return $this->headers->all();
+    }
+    public function getHeader(string $name): ?string
+    {
+        return $this->headers->get($name);
+    }
+
+    public function getCookies(): array
+    {
+        return $this->cookies->all();
+    }
+    public function getCookie(string $name): ?string
+    {
+        return $this->cookies->get($name);
+    }
+    public function hasCookie(string $name): bool
+    {
+        return $this->cookies->has($name);
+    }
+
+    public function getBody(): BodyDataBag
+    {
+        return $this->body;
+    }
+
+    public function getQueries(): array
+    {
+        return $this->query->all();
+    }
+
+    public function getQuery(string $name): ?string
+    {
+        return $this->query->get($name);
+    }
+
+    public function isSecure(): bool
+    {
         $proto = $this->getHeader('X-Forwarded-Proto');
         if ($proto !== null) {
             return strtolower($proto) === 'https';
