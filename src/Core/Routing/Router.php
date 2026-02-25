@@ -213,6 +213,11 @@ class Router
         if (!str_starts_with($path, "/")) {
             $path = "/" . $path;
         }
+
+        while(str_ends_with($path, "/")) {
+            $path = substr($path, 0, -1);
+        }
+        
         return $path;
     }
 
