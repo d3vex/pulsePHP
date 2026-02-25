@@ -287,6 +287,7 @@ class Router
 
     private function match(string $path, string $method, RouteDefinition $route): bool
     {
+        $path = $this->sanitizePath($path);
         if ($route->method !== $method) {
             return false;
         }
