@@ -2,7 +2,7 @@
     "name": "d3vex/pulsephp",
     "description": "A ligthweigth framework for a school project",
     "type": "framework",
-    "license": "mit",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "D3vex\\Pulsephp\\": "src/"
@@ -14,5 +14,6 @@
             "email": "loanmata4@gmail.com"
         }
     ],
+    "minimum-stability": "stable",
     "require": {}
 }
