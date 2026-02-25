@@ -1,6 +1,6 @@
-# PulsePHP Documentation Index
+# D3vex\Pulsephp\Core Documentation Index
 
-Welcome to the PulsePHP documentation! This is a comprehensive guide to using the PulsePHP framework.
+Welcome to the D3vex\Pulsephp\Core documentation! This is a comprehensive guide to using the D3vex\Pulsephp\Core framework.
 
 ## 📖 Documentation Structure
 
@@ -13,7 +13,7 @@ Welcome to the PulsePHP documentation! This is a comprehensive guide to using th
 - Basic configuration examples
 
 ### [1. Architecture Overview](./1-architecture.md)
-Learn how PulsePHP works under the hood.
+Learn how D3vex\Pulsephp\Core works under the hood.
 - Framework structure and components
 - Request lifecycle flow
 - Attribute-based architecture
@@ -93,7 +93,7 @@ README.md → 1-architecture.md → 2-routing.md
 ### By Experience Level
 
 **Beginner**
-1. README.md - Understand what PulsePHP is
+1. README.md - Understand what D3vex\Pulsephp\Core is
 2. Quick Start section in README
 3. 2-routing.md - Define your first routes
 4. 5-examples.md - Example 1 (Hello World)
@@ -318,4 +318,4 @@ For issues or questions:
 
 ---
 
-**Happy coding with PulsePHP!** 🚀
+**Happy coding with D3vex\Pulsephp\Core!** 🚀

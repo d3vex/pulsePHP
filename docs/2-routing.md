@@ -2,7 +2,7 @@
 
 ## Overview
 
-PulsePHP uses PHP 8 attributes to define routes. Routes are defined directly on controller methods using the `#[Route]` attribute, eliminating the need for separate route configuration files.
+D3vex\Pulsephp\Core uses PHP 8 attributes to define routes. Routes are defined directly on controller methods using the `#[Route]` attribute, eliminating the need for separate route configuration files.
 
 ## Basic Route Definition
 

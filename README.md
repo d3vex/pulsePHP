@@ -1,10 +1,10 @@
-# PulsePHP
+# D3vex\Pulsephp\Core
 
-A lightweight, zero-complexity PHP framework built from scratch for school projects and simple API development. PulsePHP provides a clean, attribute-based routing system with built-in IoC container and middleware support.
+A lightweight, zero-complexity PHP framework built from scratch for school projects and simple API development. D3vex\Pulsephp\Core provides a clean, attribute-based routing system with built-in IoC container and middleware support.
 
 ## 🎯 Project Context
 
-PulsePHP was created as a response to overly complex frameworks and school project boilerplate. The goal was to build a simple, understandable framework that teaches routing, dependency injection, and middleware concepts without unnecessary complexity.
+D3vex\Pulsephp\Core was created as a response to overly complex frameworks and school project boilerplate. The goal was to build a simple, understandable framework that teaches routing, dependency injection, and middleware concepts without unnecessary complexity.
 
 ## ✨ Features
 

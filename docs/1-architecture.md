@@ -2,7 +2,7 @@
 
 ## Framework Structure
 
-PulsePHP follows a clean architecture pattern with clear separation of concerns:
+D3vex\Pulsephp\Core follows a clean architecture pattern with clear separation of concerns:
 
 ```
 Request → Kernel → Router → Dispatcher → Middleware → Controller → Response

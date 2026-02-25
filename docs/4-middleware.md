@@ -2,7 +2,7 @@
 
 ## Overview
 
-Middleware is a powerful mechanism for processing requests before they reach your route handlers. PulsePHP middleware can perform authentication, logging, validation, rate limiting, and more.
+Middleware is a powerful mechanism for processing requests before they reach your route handlers. D3vex\Pulsephp\Core middleware can perform authentication, logging, validation, rate limiting, and more.
 
 ## Understanding Middleware
 
