@@ -67,6 +67,9 @@ class Router
         }
 
         foreach ($class->getMethods() as $method) {
+            if(!$method->isPublic()) {
+                continue;
+            }
             $this->registerRouteFromController($method, $baseUrl, $controller, $baseMiddleware);
         }
 

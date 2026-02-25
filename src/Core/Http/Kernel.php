@@ -4,6 +4,8 @@ namespace D3vex\Pulsephp\Core\Http;
 use D3vex\Pulsephp\Core\Logger\Logger;
 use D3vex\Pulsephp\Core\Container\IOCContainer;
 use D3vex\Pulsephp\Core\Routing\Dispatcher;
+use D3vex\Pulsephp\Core\Routing\RouteDefinition;
+use D3vex\Pulsephp\Core\Routing\RouteOptionsDefinition;
 use D3vex\Pulsephp\Core\Routing\Router;
 use D3vex\Pulsephp\Core\Config\AppConfig;
 
@@ -60,11 +62,11 @@ class Kernel {
             return $response;
         }
         $response->setHeaders(headers: $this->config->getDefaultHeaders());
+        $this->handleCors($route, $request, $response);
         if($isOptions) {
-            $this->dispatcher->dispatchOptionsRequest($route, $request, $response); 
+            $response->setStatusCode(204);
             return $response;
         }
-
         try {
             $this->dispatcher->dispatch($route, $request, $response);
         }catch (HTTPExceptions $e) {
@@ -75,6 +77,22 @@ class Kernel {
         if($isHead && $response->getStatusCode() >= 299) $response->setStatusCode(204);
 
         return $response;
+    }
+
+    private function handleCors(RouteDefinition $route, RequestModel $request, ResponseModel $response)
+    {
+        $config = $this->container->get(AppConfig::class);
+        foreach ($config->getCorsAsHeaders() as $key => $value) {
+            if (is_array(value: $value)) {
+                $value = implode(",", $value);
+            }
+            $response->setHeader($key, $value);
+        }
+        if($route instanceof RouteOptionsDefinition) {
+            $response->setHeader("Allow", implode(",", $route->allowMethods));
+        }else {
+        $response->setHeader("Allow", implode(",", [$route->method]));
+        }
     }
 
 }
