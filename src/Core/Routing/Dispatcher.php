@@ -39,8 +39,7 @@ class Dispatcher
         $callableHandler = $this->getCallableHandler($route);
 
         $this->dispatchMiddleware($route, $request);
-        $requestParams = $this->parseParamsFromUrl($request->getRequestUri(), $route->compiledPath, $route->parameters);
-        $methodParams = $this->resolveControllerPrams($route, $request, $requestParams);
+        $methodParams = $this->resolveControllerPrams($route, $request, $route->parameters);
         $responseValue = call_user_func($callableHandler, ...$methodParams);
         $response->setBody($responseValue);
     }
@@ -77,17 +76,6 @@ class Dispatcher
             if ($result == false)
                 throw new Exceptions\MiddlewareReturnFalseExceptions($middleware::class);
         }
-    }
-
-    private function parseParamsFromUrl(string $url, string $regex, array $params)
-    {
-        $matches = [];
-        preg_match($regex, $url, $matches);
-        $extractedParams = [];
-        for($i = 0; $i < count($params); $i++) {
-            $extractedParams[$params[$i]] = $matches[$i + 1];
-        }
-        return $extractedParams;
     }
 
     private function resolveControllerPrams(RouteDefinition $route, RequestModel $request, $requestParams)

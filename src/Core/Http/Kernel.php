@@ -54,7 +54,6 @@ class Kernel {
         $isOptions = $method === "OPTIONS";
         if($isHead) $method = "GET";
 
-        $this->logger->info("Receiving new request with path: " . $request->getRequestUri() ." and method: " . $request->getRequestMethod());
         $route = $this->router->matchRoute($request->getRequestUri(), $method);
         if ($route === null) {
             $response->setStatusCode(404);

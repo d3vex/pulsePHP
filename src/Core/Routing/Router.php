@@ -249,6 +249,7 @@ class Router
         $optionsRoute->method = "OPTIONS";
         $optionsRoute->name = $route->name . "_options";
         $optionsRoute->allowMethods = [$route->method];
+        $optionsRoute->handler = [];
         $this->routes["OPTIONS"][] = $optionsRoute;
         return;
     }
@@ -289,6 +290,7 @@ class Router
             array_shift($matches);
             preg_match_all('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', $route->originalPath, $paramNames);
             $paramNames = $paramNames[1];
+            $route->parameters = [];
             foreach ($paramNames as $index => $name) {
                 $route->parameters[$name] = $matches[$index];
             }
